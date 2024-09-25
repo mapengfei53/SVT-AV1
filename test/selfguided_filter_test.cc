@@ -55,7 +55,7 @@ class AV1SelfguidedFilterTest
         const int32_t pu_width = RESTORATION_PROC_UNIT_SIZE;
         const int32_t pu_height = RESTORATION_PROC_UNIT_SIZE;
         const int32_t width = 256, height = 256, stride = 288, out_stride = 288;
-        const int NUM_ITERS = 2000;
+        const int NUM_ITERS = 3000;
         int i, j, k;
 
         uint8_t *input_ = (uint8_t *)svt_aom_memalign(
@@ -80,7 +80,7 @@ class AV1SelfguidedFilterTest
                 rnd.PseudoUniform(SGRPROJ_PRJ_MAX1 + 1 - SGRPROJ_PRJ_MIN1)};
         // Fix a parameter set, since the speed depends slightly on r.
         // Change this to test different combinations of values of r.
-        int32_t eps = 15;
+        int32_t eps = 1;
         double ref_time, tst_time;
         uint64_t start_time_seconds, start_time_useconds;
         uint64_t middle_time_seconds, middle_time_useconds;
@@ -321,7 +321,7 @@ class AV1HighbdSelfguidedFilterTest
                 rnd.PseudoUniform(SGRPROJ_PRJ_MAX1 + 1 - SGRPROJ_PRJ_MIN1)};
         // Fix a parameter set, since the speed depends slightly on r.
         // Change this to test different combinations of values of r.
-        int32_t eps = 15;
+        int32_t eps = 1;
         double ref_time, tst_time;
         uint64_t start_time_seconds, start_time_useconds;
         uint64_t middle_time_seconds, middle_time_useconds;
