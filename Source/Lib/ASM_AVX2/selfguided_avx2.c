@@ -292,15 +292,19 @@ static INLINE __m256i one_by_x_plus_one(__m256i x) {
         _mm256_broadcastsi128_si256(_mm_setr_epi8(255, 128, 85, 64, 51, 43, 37, 32, 28, 26, 23, 21, 20, 18, 17, 16)),
         _mm256_broadcastsi128_si256(_mm_setr_epi8(15, 14, 13, 13, 12, 12, 11, 11, 10, 10, 9, 9, 9, 9, 8, 8)),
         _mm256_broadcastsi128_si256(_mm_setr_epi8(8, 8, 7, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5))};
-    // Max(RefTable[i*16:i*16+16])
-    // The first 3 entries are a special case.
-    const __m256i range_max_lut = _mm256_broadcastsi128_si256(
-        _mm_setr_epi8(0, 1, 1, 5, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1));
-    // Indices where the value of RefTable changes. For each range in range_max_lut (covering 16 RefTable entries), we
-    // have one index. For the first 48 values, there are too many changes so, instead, those entries are used to
-    // simplify masking the first 48.
+    // Min(RefTable[i*16:i*16+16])
+    const __m256i range_min_lut = _mm256_broadcastsi128_si256(
+        _mm_setr_epi8(0, 0, 0, 4, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0));
+    // Indices where the value of RefTable changes. For each range in range_min_lut (covering 16 RefTable entries), we
+    // have one index or a placeholder (-128).
+    // 1/(x+1) can be obtained for the last 208 entries via
+    //      range_min + range_diff_idx > x ? 1 : 0
+    //      (Note: there is no 8 bit signed comparison, thus why the placeholder is -128)
+    // For the first 48 values, there are too many changes so, instead, those entries are used to simplify masking in
+    // and out the shuffles for 16-32 and 32-48. Specifically range_diff_idx == 0 and range_diff_idx == hi_bit_mask are
+    // used for mask generation.
     const __m256i range_diff_idx_lut = _mm256_broadcastsi128_si256(
-        _mm_setr_epi8(127, 0, 0xf0, 55, 72, 127, 101, 127, 127, 127, 169, 127, 127, 127, 127, 254));
+        _mm_setr_epi8(-128, 0, 0xf0, 56, 73, -128, 102, -128, -128, -128, 170, -128, -128, -128, -128, 255));
     const __m256i hi_bit_mask = _mm256_set1_epi8(0xf0);
 
     // Lookup values for the first 48 entries
@@ -314,12 +318,11 @@ static INLINE __m256i one_by_x_plus_one(__m256i x) {
     const __m256i hi_bits = _mm256_srli_epi16(_mm256_and_si256(x, hi_bit_mask), 4);
 
     // Lookup based on the high bits.
-    const __m256i range_max      = _mm256_shuffle_epi8(range_max_lut, hi_bits);
+    const __m256i range_max      = _mm256_shuffle_epi8(range_min_lut, hi_bits);
     const __m256i range_diff_idx = _mm256_shuffle_epi8(range_diff_idx_lut, hi_bits);
 
     // Subtract by one if the index is greater than the range diff index.
-    // last_208 is always zero if x < 48.
-    const __m256i last_208 = _mm256_add_epi8(range_max, _mm256_cmpgt_epi8(x, range_diff_idx));
+    const __m256i last_208 = _mm256_sub_epi8(range_max, _mm256_cmpgt_epi8(range_diff_idx, x));
 
     // zero out shuffles when the index is outside the desired range
     shuf1 = _mm256_and_si256(shuf1, _mm256_cmpeq_epi8(hi_bits, _mm256_setzero_si256()));
@@ -333,6 +336,9 @@ static INLINE __m256i one_by_x_plus_one(__m256i x) {
     return res;
 }
 
+// Assumes that C, D are integral images for the original buffer which has been
+// extended to have a padding of SGRPROJ_BORDER_VERT/SGRPROJ_BORDER_HORZ pixels
+// on the sides. A, b, C, D point at logical position (0, 0).
 static AOM_FORCE_INLINE void calc_ab_r1_generic(int32_t *A, int32_t *b, const int32_t *C, const int32_t *D,
                                                 int32_t width, int32_t height, int32_t buf_stride, int32_t bit_depth,
                                                 int32_t sgr_params_idx, compute_p_fn compute_p) {
@@ -351,7 +357,7 @@ static AOM_FORCE_INLINE void calc_ab_r1_generic(int32_t *A, int32_t *b, const in
     C -= buf_stride + 1;
     D -= buf_stride + 1;
 
-    int32_t i = ((height + 2) + 3) >> 2;
+    int32_t i = 0;
     do {
         int32_t j = 0;
         do {
@@ -382,6 +388,27 @@ static AOM_FORCE_INLINE void calc_ab_r1_generic(int32_t *A, int32_t *b, const in
             const __m256i z_u8                = _mm256_packus_epi16(_mm256_packs_epi32(z_u32[0], z_u32[1]),
                                                      _mm256_packs_epi32(z_u32[2], z_u32[3]));
             const __m256i a_complement_u8     = one_by_x_plus_one(z_u8);
+            uint8_t vz[32];
+            uint8_t va[32];
+            yy_storeu_256(vz, z_u8);
+            yy_storeu_256(va, a_complement_u8);
+            int debug = 0;
+            for (int k = 0; k < 32; k++) {
+                if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
+                    debug = 1;
+            }
+            if (debug) {
+                for (int k = 0; k < 32; k++) {
+                    if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
+                        fprintf(stderr, "%d ", vz[k]);
+                }
+                fprintf(stderr, "\n");
+                for (int k = 0; k < 32; k++) {
+                    if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
+                        fprintf(stderr, "%d ", 256 - va[k]);
+                }
+                fprintf(stderr, "\n");
+            }
             const __m256i a_complement_u16[2] = {
                 _mm256_unpacklo_epi8(a_complement_u8, zero),
                 _mm256_unpackhi_epi8(a_complement_u8, zero),
@@ -433,16 +460,14 @@ static AOM_FORCE_INLINE void calc_ab_r1_generic(int32_t *A, int32_t *b, const in
             j += 8;
         } while (j < width + 2);
 
-        A += buf_stride * 4;
-        b += buf_stride * 4;
-        C += buf_stride * 4;
-        D += buf_stride * 4;
-    } while (--i);
+        A += 4 * buf_stride;
+        b += 4 * buf_stride;
+        C += 4 * buf_stride;
+        D += 4 * buf_stride;
+        i += 4;
+    } while (i < height + 2);
 }
 
-// Assumes that C, D are integral images for the original buffer which has been
-// extended to have a padding of SGRPROJ_BORDER_VERT/SGRPROJ_BORDER_HORZ pixels
-// on the sides. A, b, C, D point at logical position (0, 0).
 static AOM_FORCE_INLINE void calc_ab_r1(int32_t *A, int32_t *b, const int32_t *C, const int32_t *D, int32_t width,
                                         int32_t height, int32_t buf_stride, int32_t bit_depth, int32_t sgr_params_idx) {
     if (bit_depth == 8) {
@@ -452,6 +477,9 @@ static AOM_FORCE_INLINE void calc_ab_r1(int32_t *A, int32_t *b, const int32_t *C
     }
 }
 
+// Assumes that C, D are integral images for the original buffer which has been
+// extended to have a padding of SGRPROJ_BORDER_VERT/SGRPROJ_BORDER_HORZ pixels
+// on the sides. A, b, C, D point at logical position (0, 0).
 static AOM_FORCE_INLINE void calc_ab_r2_generic(int32_t *A, int32_t *b, const int32_t *C, const int32_t *D,
                                                 int32_t width, int32_t height, int32_t buf_stride, int32_t bit_depth,
                                                 int32_t sgr_params_idx, compute_p_fn compute_p) {
@@ -470,11 +498,11 @@ static AOM_FORCE_INLINE void calc_ab_r2_generic(int32_t *A, int32_t *b, const in
     C -= buf_stride + 1;
     D -= buf_stride + 1;
 
-    // calc_ab is only run every other row for radius of 2
-    int32_t i = (height + 2 + 6) >> 3;
+    int32_t i = 0;
     do {
         int32_t j = 0;
         do {
+            // For radius 2, ab is only computed every other row.
             const __m256i sum1[4] = {
                 boxsum_from_ii(D + 0 * buf_stride + j, buf_stride, r),
                 boxsum_from_ii(D + 2 * buf_stride + j, buf_stride, r),
@@ -555,12 +583,10 @@ static AOM_FORCE_INLINE void calc_ab_r2_generic(int32_t *A, int32_t *b, const in
         b += 8 * buf_stride;
         C += 8 * buf_stride;
         D += 8 * buf_stride;
-    } while (i--);
+        i += 8;
+    } while (i < height + 2);
 }
 
-// Assumes that C, D are integral images for the original buffer which has been
-// extended to have a padding of SGRPROJ_BORDER_VERT/SGRPROJ_BORDER_HORZ pixels
-// on the sides. A, b, C, D point at logical position (0, 0).
 static AOM_FORCE_INLINE void calc_ab_r2(int32_t *A, int32_t *b, const int32_t *C, const int32_t *D, int32_t width,
                                         int32_t height, int32_t buf_stride, int32_t bit_depth, int32_t sgr_params_idx) {
     if (bit_depth == 8) {
