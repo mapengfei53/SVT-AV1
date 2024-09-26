@@ -144,12 +144,12 @@ static AOM_FORCE_INLINE void integral_images(const uint8_t *src, int32_t src_str
         y += 8;
     } while (y < height);
 
-//    for (; y < ((height + 6) & ~7); y++) {
-//        memset(ct, 0, sizeof(*C) * (width + 8));
-//        memset(ct, 0, sizeof(*D) * (width + 8));
-//        ct += buf_stride;
-//        dt += buf_stride;
-//    }
+    //    for (; y < ((height + 6) & ~7); y++) {
+    //        memset(ct, 0, sizeof(*C) * (width + 8));
+    //        memset(ct, 0, sizeof(*D) * (width + 8));
+    //        ct += buf_stride;
+    //        dt += buf_stride;
+    //    }
 }
 
 static AOM_FORCE_INLINE void integral_images_highbd(const uint16_t *src, int32_t src_stride, int32_t width,
@@ -236,12 +236,12 @@ static AOM_FORCE_INLINE void integral_images_highbd(const uint16_t *src, int32_t
         y += 8;
     } while (y < height);
 
-//    for (; y < ((height + 6) & ~7); y++) {
-//        memset(ct, 0, sizeof(*C) * (width + 8));
-//        memset(ct, 0, sizeof(*D) * (width + 8));
-//        ct += buf_stride;
-//        dt += buf_stride;
-//    }
+    //    for (; y < ((height + 6) & ~7); y++) {
+    //        memset(ct, 0, sizeof(*C) * (width + 8));
+    //        memset(ct, 0, sizeof(*D) * (width + 8));
+    //        ct += buf_stride;
+    //        dt += buf_stride;
+    //    }
 }
 
 // Compute 8 values of boxsum from the given integral image. ii should point
@@ -388,27 +388,6 @@ static AOM_FORCE_INLINE void calc_ab_r1_generic(int32_t *A, int32_t *b, const in
             const __m256i z_u8                = _mm256_packus_epi16(_mm256_packs_epi32(z_u32[0], z_u32[1]),
                                                      _mm256_packs_epi32(z_u32[2], z_u32[3]));
             const __m256i a_complement_u8     = one_by_x_plus_one(z_u8);
-            uint8_t vz[32];
-            uint8_t va[32];
-            yy_storeu_256(vz, z_u8);
-            yy_storeu_256(va, a_complement_u8);
-            int debug = 0;
-            for (int k = 0; k < 32; k++) {
-                if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
-                    debug = 1;
-            }
-            if (debug) {
-                for (int k = 0; k < 32; k++) {
-                    if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
-                        fprintf(stderr, "%d ", vz[k]);
-                }
-                fprintf(stderr, "\n");
-                for (int k = 0; k < 32; k++) {
-                    if (svt_aom_eb_x_by_xplus1[vz[k]] != 256 - va[k])
-                        fprintf(stderr, "%d ", 256 - va[k]);
-                }
-                fprintf(stderr, "\n");
-            }
             const __m256i a_complement_u16[2] = {
                 _mm256_unpacklo_epi8(a_complement_u8, zero),
                 _mm256_unpackhi_epi8(a_complement_u8, zero),
