@@ -467,7 +467,7 @@ static AOM_FORCE_INLINE void calc_ab_r2_generic(int32_t *A, int32_t *b, const in
     const int32_t              n      = (2 * r + 1) * (2 * r + 1);
     const __m256i              s      = _mm256_set1_epi32(params->s[2 - r]);
     // one_over_n[n-1] is 2^12/n, so easily fits in an int16
-    const __m256i one_over_n = _mm256_set1_epi32(164);
+    const __m256i one_over_n = _mm256_set1_epi32(svt_aom_eb_one_by_x[n - 1]);
     const __m256i rnd_z      = round_for_shift(SGRPROJ_MTABLE_BITS);
     const __m256i rnd_res    = round_for_shift(SGRPROJ_RECIP_BITS);
     const __m256i zero       = _mm256_setzero_si256();
