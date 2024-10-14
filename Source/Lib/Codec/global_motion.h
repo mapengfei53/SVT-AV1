@@ -33,11 +33,6 @@ extern "C" {
 #endif
 
 #define MAX_CORNERS 4096
-#define RANSAC_NUM_MOTIONS 1
-
-typedef enum {
-    GLOBAL_MOTION_FEATURE_BASED,
-} GlobalMotionEstimationType;
 
 enum {
     GM_ERRORADV_TR_0,
@@ -82,9 +77,8 @@ int64_t svt_av1_refine_integerized_param(EbWarpedMotionParams *wm, Transformatio
 */
 int svt_av1_compute_global_motion(TransformationType type, uint8_t corners, unsigned char *frm_buffer, int frm_width,
                                   int frm_height, int frm_stride, int *frm_corners, int num_frm_corners, uint8_t *ref,
-                                  int ref_stride, int bit_depth, GlobalMotionEstimationType gm_estimation_type,
-                                  int *num_inliers_by_motion, MotionModel *params_by_motion, int num_motions,
-                                  uint8_t match_sz);
+                                  int ref_stride, int bit_depth, int *num_inliers_by_motion,
+                                  MotionModel *params_by_motion, uint8_t match_sz);
 #ifdef __cplusplus
 } // extern "C"
 #endif
