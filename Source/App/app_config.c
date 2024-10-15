@@ -31,7 +31,7 @@
 #include "app_output_ivf.h"
 
 #if !defined(_WIN32) || !defined(HAVE_STRNLEN_S)
-#include "third_party/safestringlib/safe_str_lib.h"
+#include <safe_str_lib.h>
 #endif
 
 /**********************************

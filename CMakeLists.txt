@@ -521,18 +521,7 @@ set_property(DIRECTORY .
         $<$<BOOL:${HAVE_STRCPY_S}>:HAVE_STRCPY_S=1>
         $<$<BOOL:${WIN32}>:_WIN32_WINNT=0x0601>)
 if(NOT HAVE_STRCPY_S OR NOT HAVE_STRNCPY_S OR NOT HAVE_STRNLEN_S)
-    add_library(safestringlib OBJECT
-        third_party/safestringlib/safeclib_private.h
-        third_party/safestringlib/safe_lib.h
-        third_party/safestringlib/safe_types.h
-        third_party/safestringlib/safe_lib_errno.h
-        third_party/safestringlib/safe_str_lib.h
-        third_party/safestringlib/safe_str_constraint.h
-        third_party/safestringlib/safe_str_constraint.c
-        third_party/safestringlib/ignore_handler_s.c
-        $<$<NOT:$<BOOL:${HAVE_STRNLEN_S}>>:third_party/safestringlib/strnlen_s.c>
-        $<$<NOT:$<BOOL:${HAVE_STRNCPY_S}>>:third_party/safestringlib/strncpy_s.c>
-        $<$<NOT:$<BOOL:${HAVE_STRCPY_S}>>:third_party/safestringlib/strcpy_s.c>)
+    find_package(safestring)
 endif()
 
 # Try to find valgrind.h for the RUNNING_ON_VALGRIND macro
