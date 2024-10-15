@@ -9,64 +9,10 @@
 # PATENTS file, you can obtain it at https://www.aomedia.org/license/patent-license.
 #
 
-cmake_minimum_required(VERSION 3.5...3.28)
-
 # APP Directory CMakeLists.txt
 
 # Include Subdirectories
 include_directories(${PROJECT_SOURCE_DIR}/Source/API/)
-find_package(PkgConfig)
-if(NOT PkgConfig_FOUND)
-  message(WARNING "PkgConfig not found; disabled building with dovi & hdr10plus.")
-endif()
-
-# libdovi detection & preprocessor macro
-option(LIBDOVI_FOUND "Use the dovi library" OFF)
-if(LIBDOVI_FOUND)
-  if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_LIBDOVI dovi QUIET)
-  endif()
-
-  find_library(LIBDOVI_LIBRARY NAMES dovi libdovi
-                               PATHS ${PC_LIBDOVI_LIBDIR})
-  if(NOT LIBDOVI_LIBRARY)
-  message(FATAL_ERROR "dovi library not found!")
-  endif()
-
-  find_path(LIBDOVI_INCLUDE_DIR NAMES libdovi/rpu_parser.h
-                                PATHS ${PC_LIBDOVI_INCLUDEDIR})
-
-  set(LIBDOVI_INCLUDE_DIRS ${LIBDOVI_INCLUDE_DIR})
-  set(LIBDOVI_LIBRARIES ${LIBDOVI_LIBRARY})
-  add_definitions(-DLIBDOVI_FOUND=1)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E echo_append "-- Building with dovi support - Yes\n")
-else()
-  execute_process(COMMAND ${CMAKE_COMMAND} -E echo_append "-- Building with dovi support - No\n")
-endif()
-
-# libhdr10plus detection & preprocessor macro
-option(LIBHDR10PLUS_RS_FOUND "Use the hdr10plus library" OFF)
-if(LIBHDR10PLUS_RS_FOUND)
-  if(PKG_CONFIG_FOUND)
-  pkg_check_modules(PC_LIBHDR10PLUS_RS hdr10plus-rs QUIET)
-  endif()
-
-  find_library(LIBHDR10PLUS_RS_LIBRARY NAMES hdr10plus-rs libhdr10plus-rs
-                               PATHS ${PC_LIBHDR10PLUS_RS_LIBDIR})
-  if(NOT LIBHDR10PLUS_RS_LIBRARY)
-  message(FATAL_ERROR "hdr10plus library not found!")
-  endif()
-
-  find_path(LIBHDR10PLUS_RS_INCLUDE_DIR NAMES libhdr10plus-rs/hdr10plus.h
-                                PATHS ${PC_LIBHDR10PLUS_RS_INCLUDEDIR})
-
-  set(LIBHDR10PLUS_RS_INCLUDE_DIRS ${LIBHDR10PLUS_RS_INCLUDE_DIR})
-  set(LIBHDR10PLUS_RS_LIBRARIES ${LIBHDR10PLUS_RS_LIBRARY})
-  add_definitions(-DLIBHDR10PLUS_RS_FOUND=1)
-  execute_process(COMMAND ${CMAKE_COMMAND} -E echo_append "-- Building with hdr10plus support - Yes\n")
-else()
-  execute_process(COMMAND ${CMAKE_COMMAND} -E echo_append "-- Building with hdr10plus support - No\n")
-endif()
 
 set(all_files
     ../API/EbDebugMacros.h
@@ -95,15 +41,13 @@ add_executable(SvtAv1EncApp
     ${all_files})
 
 if(TARGET safestringlib)
-   target_link_libraries (SvtAv1EncApp PRIVATE safestringlib_shared)
+    target_sources(SvtAv1EncApp PRIVATE $<TARGET_OBJECTS:safestringlib>)
 endif()
 
 #********** SET COMPILE FLAGS************
 # Link the Encoder App
 target_link_libraries(SvtAv1EncApp
-        SvtAv1Enc
-        ${LIBDOVI_LIBRARY}
-        ${LIBHDR10PLUS_RS_LIBRARY})
+        SvtAv1Enc)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
     target_link_libraries(SvtAv1EncApp ${PLATFORM_LIBS})
 elseif(UNIX)
