@@ -355,11 +355,11 @@ void svt_aom_setup_rtcd_internal(EbCpuFlags flags) {
     SET_SSE2_AVX2(svt_aom_variance8x8, svt_aom_variance8x8_c, svt_aom_variance8x8_sse2, svt_aom_variance8x8_avx2);
     SET_SSE2_AVX2(svt_aom_variance8x16, svt_aom_variance8x16_c, svt_aom_variance8x16_sse2, svt_aom_variance8x16_avx2);
     SET_SSE2_AVX2(svt_aom_variance8x32, svt_aom_variance8x32_c, svt_aom_variance8x32_sse2, svt_aom_variance8x32_avx2);
-    SET_SSE2_AVX2(svt_aom_variance16x4, svt_aom_variance16x4_c, svt_aom_variance16x4_sse2, svt_aom_variance16x4_avx2);
-    SET_SSE2_AVX2(svt_aom_variance16x8, svt_aom_variance16x8_c, svt_aom_variance16x8_sse2, svt_aom_variance16x8_avx2);
-    SET_SSE2_AVX2(svt_aom_variance16x16, svt_aom_variance16x16_c, svt_aom_variance16x16_sse2, svt_aom_variance16x16_avx2);
-    SET_SSE2_AVX2(svt_aom_variance16x32, svt_aom_variance16x32_c, svt_aom_variance16x32_sse2, svt_aom_variance16x32_avx2);
-    SET_SSE2_AVX2(svt_aom_variance16x64, svt_aom_variance16x64_c, svt_aom_variance16x64_sse2, svt_aom_variance16x64_avx2);
+    SET_SSE2_AVX2_AVX512(svt_aom_variance16x4, svt_aom_variance16x4_c, svt_aom_variance16x4_sse2, svt_aom_variance16x4_avx2, svt_aom_variance16x4_avx512);
+    SET_SSE2_AVX2_AVX512(svt_aom_variance16x8, svt_aom_variance16x8_c, svt_aom_variance16x8_sse2, svt_aom_variance16x8_avx2, svt_aom_variance16x8_avx512);
+    SET_SSE2_AVX2_AVX512(svt_aom_variance16x16, svt_aom_variance16x16_c, svt_aom_variance16x16_sse2, svt_aom_variance16x16_avx2, svt_aom_variance16x16_avx512);
+    SET_SSE2_AVX2_AVX512(svt_aom_variance16x32, svt_aom_variance16x32_c, svt_aom_variance16x32_sse2, svt_aom_variance16x32_avx2, svt_aom_variance16x32_avx512);
+    SET_SSE2_AVX2_AVX512(svt_aom_variance16x64, svt_aom_variance16x64_c, svt_aom_variance16x64_sse2, svt_aom_variance16x64_avx2, svt_aom_variance16x64_avx512);
     SET_SSE2_AVX2_AVX512(svt_aom_variance32x8, svt_aom_variance32x8_c, svt_aom_variance32x8_sse2, svt_aom_variance32x8_avx2, svt_aom_variance32x8_avx512);
     SET_SSE2_AVX2_AVX512(svt_aom_variance32x16, svt_aom_variance32x16_c, svt_aom_variance32x16_sse2, svt_aom_variance32x16_avx2, svt_aom_variance32x16_avx512);
     SET_SSE2_AVX2_AVX512(svt_aom_variance32x32, svt_aom_variance32x32_c, svt_aom_variance32x32_sse2, svt_aom_variance32x32_avx2, svt_aom_variance32x32_avx512);
