@@ -41,7 +41,7 @@ add_executable(SvtAv1EncApp
     ${all_files})
 
 if(TARGET safestringlib)
-    target_sources(SvtAv1EncApp PRIVATE $<TARGET_OBJECTS:safestringlib>)
+   target_link_libraries (SvtAv1EncApp PRIVATE safestringlib_shared)
 endif()
 
 #********** SET COMPILE FLAGS************
