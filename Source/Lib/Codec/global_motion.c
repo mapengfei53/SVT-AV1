@@ -267,10 +267,9 @@ static int compute_global_motion_feature_based(TransformationType type, uint8_t 
                                                int frm_width, int frm_height, int frm_stride, int *frm_corners,
                                                int num_frm_corners, uint8_t *ref, int ref_stride, int bit_depth,
                                                int *num_inliers_by_motion, MotionModel *params_by_motion,
-                                               int num_motions, uint8_t match_sz) {
+                                               uint8_t match_sz) {
     (void)bit_depth;
     assert(bit_depth == EB_EIGHT_BIT);
-    int            i;
     int            num_ref_corners;
     int            num_correspondences;
     int           *correspondences;
@@ -297,50 +296,37 @@ static int compute_global_motion_feature_based(TransformationType type, uint8_t 
                                                            ref_stride,
                                                            correspondences,
                                                            match_sz);
-    ransac(correspondences, num_correspondences, num_inliers_by_motion, params_by_motion, num_motions);
+    ransac(correspondences, num_correspondences, num_inliers_by_motion, params_by_motion);
 
     // Set num_inliers = 0 for motions with too few inliers so they are ignored.
-    for (i = 0; i < num_motions; ++i) {
-        if (num_inliers_by_motion[i] < MIN_INLIER_PROB * num_correspondences || num_correspondences == 0) {
-            num_inliers_by_motion[i] = 0;
-        } else {
-            get_inliers_from_indices(&params_by_motion[i], correspondences);
-        }
+    if (*num_inliers_by_motion < MIN_INLIER_PROB * num_correspondences || num_correspondences == 0) {
+        *num_inliers_by_motion = 0;
+    } else {
+        get_inliers_from_indices(params_by_motion, correspondences);
     }
 
     free(correspondences);
 
     // Return true if any one of the motions has inliers.
-    for (i = 0; i < num_motions; ++i) {
-        if (num_inliers_by_motion[i] > 0)
-            return 1;
-    }
-    return 0;
+    return *num_inliers_by_motion > 0 ? 1 : 0;
 }
 
 int svt_av1_compute_global_motion(TransformationType type, uint8_t corners, unsigned char *frm_buffer, int frm_width,
                                   int frm_height, int frm_stride, int *frm_corners, int num_frm_corners, uint8_t *ref,
-                                  int ref_stride, int bit_depth, GlobalMotionEstimationType gm_estimation_type,
-                                  int *num_inliers_by_motion, MotionModel *params_by_motion, int num_motions,
-                                  uint8_t match_sz) {
-    switch (gm_estimation_type) {
-    case GLOBAL_MOTION_FEATURE_BASED:
-        return compute_global_motion_feature_based(type,
-                                                   corners,
-                                                   frm_buffer,
-                                                   frm_width,
-                                                   frm_height,
-                                                   frm_stride,
-                                                   frm_corners,
-                                                   num_frm_corners,
-                                                   ref,
-                                                   ref_stride,
-                                                   bit_depth,
-                                                   num_inliers_by_motion,
-                                                   params_by_motion,
-                                                   num_motions,
-                                                   match_sz);
-    default: assert(0 && "Unknown global motion estimation type");
-    }
-    return 0;
+                                  int ref_stride, int bit_depth, int *num_inliers_by_motion,
+                                  MotionModel *params_by_motion, uint8_t match_sz) {
+    return compute_global_motion_feature_based(type,
+                                               corners,
+                                               frm_buffer,
+                                               frm_width,
+                                               frm_height,
+                                               frm_stride,
+                                               frm_corners,
+                                               num_frm_corners,
+                                               ref,
+                                               ref_stride,
+                                               bit_depth,
+                                               num_inliers_by_motion,
+                                               params_by_motion,
+                                               match_sz);
 }

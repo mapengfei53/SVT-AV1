@@ -141,41 +141,29 @@ class RansacTest : public ::testing::TestWithParam<TransformationType> {
         ASSERT_NE(points, nullptr);
         prepare_input(points, npoints);
 
-        const int num_motions = RANSAC_NUM_MOTIONS;
-        int *num_inliers_by_motion = new int[num_motions];
-        ASSERT_NE(num_inliers_by_motion, nullptr);
-        memset(num_inliers_by_motion, 0, sizeof(*num_inliers_by_motion));
+        int num_inliers = 0;
 
-        MotionModel *motions = new MotionModel[num_motions];
-        ASSERT_NE(motions, nullptr);
-        for (int i = 0; i < num_motions; i++) {
-            memset(&motions[i], 0, sizeof(MotionModel));
-            motions[i].inliers = new int[2 * MAX_CORNERS];
-            ASSERT_NE(motions[i].inliers, nullptr);
-            memset(motions[i].inliers, 0, sizeof(int) * 2 * npoints);
-        }
+        MotionModel motions;
+        for (int i = 0; i < MAX_PARAMDIM - 1; i++) { motions.params[i] = 0; }
+        motions.num_inliers = 0;
+        motions.inliers     = new int[2 * MAX_CORNERS];
+        ASSERT_NE(motions.inliers, nullptr);
 
         FuncType ransac_func = (FuncType)get_ransac_func(GetParam());
         ASSERT_NE(ransac_func, nullptr);
-        int ret = ransac_func(
-            points, npoints, num_inliers_by_motion, motions, num_motions);
+        int ret = ransac_func(points, npoints, &num_inliers, &motions);
         ASSERT_EQ(ret, 0);
 
         /** check for the number of inlier */
-        ASSERT_NE(num_inliers_by_motion[0], 0);
+        ASSERT_NE(num_inliers, 0);
 
         /** check for the transform matrix of motion */
-        check_transform_matrix(mat_, motions[0].params);
+        check_transform_matrix(mat_, motions.params);
 
         if (points)
             delete[] points;
-        if (num_inliers_by_motion)
-            delete[] num_inliers_by_motion;
-        for (int i = 0; i < num_motions; i++) {
-            if (motions[i].inliers)
-                delete[] motions[i].inliers;
-        }
-        delete[] motions;
+        if (motions.inliers)
+            delete motions.inliers;
     }
 
     /* clang-format off */

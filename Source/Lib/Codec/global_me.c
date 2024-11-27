@@ -402,11 +402,10 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
                            EbPictureBufferDesc *ref_pic, //ref frame for refinement
                            uint8_t              sf, //downsacle factor between det and refinement
                            uint8_t chess_refn, EbWarpedMotionParams *best_wm, int allow_high_precision_mv) {
-    MotionModel params_by_motion[RANSAC_NUM_MOTIONS];
-    for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) {
-        memset(&params_by_motion[m], 0, sizeof(params_by_motion[m]));
-        params_by_motion[m].inliers = malloc(sizeof(*(params_by_motion[m].inliers)) * 2 * MAX_CORNERS);
-    }
+    MotionModel params_by_motion;
+    for (int i = 0; i < MAX_PARAMDIM - 1; i++) { params_by_motion.params[i] = 0; }
+    params_by_motion.num_inliers = 0;
+    params_by_motion.inliers     = malloc(sizeof(*(params_by_motion.inliers)) * 2 * MAX_CORNERS);
 
     // clang-format off
     static const double k_indentity_params[MAX_PARAMDIM - 1] = {
@@ -427,7 +426,7 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
     // TODO: check ref_params
     const EbWarpedMotionParams *ref_params = &default_warp_params;
     {
-        int inliers_by_motion[RANSAC_NUM_MOTIONS];
+        int inliers_by_motion;
 
         num_frm_corners = num_frm_corners * pcs->gm_ctrls.corners / 4;
 
@@ -435,16 +434,11 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
         EbWarpedMotionParams tmp_wm_params;
 #define GLOBAL_TRANS_TYPES_ENC 3
 
-        const GlobalMotionEstimationType gm_estimation_type = GLOBAL_MOTION_FEATURE_BASED;
         for (model = ROTZOOM; model <= (pcs->gm_ctrls.rotzoom_model_only ? ROTZOOM : GLOBAL_TRANS_TYPES_ENC); ++model) {
             int64_t best_warp_error = INT64_MAX;
             // Initially set all params to identity.
-            for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-                svt_memcpy(params_by_motion[i].params,
-                           k_indentity_params,
-                           (MAX_PARAMDIM - 1) * sizeof(*(params_by_motion[i].params)));
-                params_by_motion[i].num_inliers = 0;
-            }
+            for (int i = 0; i < MAX_PARAMDIM - 1; i++) { params_by_motion.params[i] = k_indentity_params[i]; }
+            params_by_motion.num_inliers = 0;
 
             svt_av1_compute_global_motion(model,
                                           pcs->gm_ctrls.corners,
@@ -457,16 +451,12 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
                                           det_ref_buffer,
                                           det_ref_pic->stride_y,
                                           EB_EIGHT_BIT,
-                                          gm_estimation_type,
-                                          inliers_by_motion,
-                                          params_by_motion,
-                                          RANSAC_NUM_MOTIONS,
+                                          &inliers_by_motion,
+                                          &params_by_motion,
                                           pcs->gm_ctrls.match_sz);
 
-            for (unsigned i = 0; i < RANSAC_NUM_MOTIONS; ++i) {
-                if (inliers_by_motion[i] == 0)
-                    continue;
-                svt_av1_convert_model_to_params(params_by_motion[i].params, &tmp_wm_params);
+            if (inliers_by_motion != 0) {
+                svt_av1_convert_model_to_params(params_by_motion.params, &tmp_wm_params);
 
                 //upscale the param before doing refinement
                 svt_aom_upscale_wm_params(&tmp_wm_params, sf);
@@ -529,5 +519,5 @@ void compute_global_motion(PictureParentControlSet *pcs, int *frm_corners, int n
 
     *best_wm = global_motion;
 
-    for (int m = 0; m < RANSAC_NUM_MOTIONS; m++) { free(params_by_motion[m].inliers); }
+    free(params_by_motion.inliers);
 }
