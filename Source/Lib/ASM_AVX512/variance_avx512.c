@@ -752,6 +752,29 @@ static INLINE int variance_final_2048_avx512(__m512i vsse, __m512i vsum, unsigne
     return variance_final_from_32bit_sum_avx512(vsse, vsum_128, sse);
 }
 
+static INLINE void variance16_kernel_avx512(const uint8_t *const src, const int src_stride, const uint8_t *const ref,
+                                          const int ref_stride, __m512i *const vsse, __m512i *const vsum) {
+    const __m128i s0 = _mm_loadu_si128((__m128i const *)(src + 0 * src_stride));
+    const __m128i s1 = _mm_loadu_si128((__m128i const *)(src + 1 * src_stride));
+    const __m128i r0 = _mm_loadu_si128((__m128i const *)(ref + 0 * ref_stride));
+    const __m128i r1 = _mm_loadu_si128((__m128i const *)(ref + 1 * ref_stride));
+    const __m512i s  = _mm512_inserti32x4(_mm512_castsi128_si512(s0), s1, 1);
+    const __m512i r  = _mm512_inserti32x4(_mm512_castsi128_si512(r0), r1, 1);
+    variance_kernel_avx512(s, r, vsse, vsum);
+}
+
+static INLINE void variance16_avx512(const uint8_t *src, const int src_stride, const uint8_t *ref, const int ref_stride,
+                                     const int h, __m512i *const vsse, __m512i *const vsum) {
+    *vsum = _mm512_setzero_si512();
+
+    for (int i = 0; i < h; i += 2) {
+        variance16_kernel_avx512(src, src_stride, ref, ref_stride, vsse, vsum);
+
+        src += 2 * src_stride;
+        ref += 2 * ref_stride;
+    }
+}
+
 static INLINE void variance32_avx512(const uint8_t *src, const int src_stride, const uint8_t *ref, const int ref_stride,
                                      const int h, __m512i *const vsse, __m512i *const vsum) {
     *vsum = _mm512_setzero_si512();
@@ -834,6 +857,12 @@ AOM_VAR_LOOP_AVX512(128, 128, 14, 16); // 128x16 * (128/16)
         const int sum = variance_final_##max_pixel##_avx512(vsse, vsum, sse);                        \
         return *sse - (uint32_t)(((int64_t)sum * sum) >> bits);                                      \
     }
+
+AOM_VAR_NO_LOOP_AVX512(16, 4, 6, 512);
+AOM_VAR_NO_LOOP_AVX512(16, 8, 7, 512);
+AOM_VAR_NO_LOOP_AVX512(16, 16, 8, 512);
+AOM_VAR_NO_LOOP_AVX512(16, 32, 9, 512);
+AOM_VAR_NO_LOOP_AVX512(16, 64, 10, 1024);
 
 AOM_VAR_NO_LOOP_AVX512(32, 8, 8, 512);
 AOM_VAR_NO_LOOP_AVX512(32, 16, 9, 512);

@@ -528,6 +528,14 @@ INSTANTIATE_TEST_SUITE_P(AVX2, VarianceTest,
 
 #if EN_AVX512_SUPPORT
 VarianceParam variance_func_avx512[] = {
+    VarianceParam(16, 4, &svt_aom_variance16x4_c, &svt_aom_variance16x4_avx512),
+    VarianceParam(16, 8, &svt_aom_variance16x8_c, &svt_aom_variance16x8_avx512),
+    VarianceParam(16, 16, &svt_aom_variance16x16_c,
+                  &svt_aom_variance16x16_avx512),
+    VarianceParam(16, 32, &svt_aom_variance16x32_c,
+                  &svt_aom_variance16x32_avx512),
+    VarianceParam(16, 64, &svt_aom_variance16x64_c,
+                  &svt_aom_variance16x64_avx512),
     VarianceParam(32, 8, &svt_aom_variance32x8_c, &svt_aom_variance32x8_avx512),
     VarianceParam(32, 16, &svt_aom_variance32x16_c,
                   &svt_aom_variance32x16_avx512),
