@@ -91,6 +91,9 @@ extern "C" {
 #define CLN_SHIFT_M10               1 // Shift M10 to M9
 #define CLN_SHIFT_M11               1 // Shift M11 to M10
 #define FIX_DEFAULT_PRESET          1 // Change default preset to M8 to align with old default
+#define OPT_LOW_DELAY_2             1 // Opt Low-delay
+#define CLN_LCG_RAND16              1 // Remove duplicate definitions of lcg_rand16()
+#define CLN_LPD0_FUNC               1 // Cleanup set_pic_lpd0_lvl to address style check issue
 
 //FOR DEBUGGING - Do not remove
 #define OPT_LD_LATENCY2         1 // Latency optimization for low delay - to keep the Macro for backwards testing until 3.0
